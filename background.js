@@ -134,33 +134,34 @@ async function executeTask(task) {
 
 async function getPageHTML(url) {
   try {
-    // Get the active tab
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // Create a new background tab
+    const newTab = await chrome.tabs.create({
+      url: url,
+      active: false, // This makes it a background tab
+      pinned: false
+    });
     
-    if (!tab) {
-      throw new Error('No active tab found');
-    }
+    console.log('Created background tab:', newTab.id);
     
-    // Navigate to the URL if it's different from current tab
-    if (tab.url !== url) {
-      await chrome.tabs.update(tab.id, { url: url });
-      
-      // Wait for page to load
-      await new Promise((resolve) => {
-        chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
-          if (tabId === tab.id && changeInfo.status === 'complete') {
-            chrome.tabs.onUpdated.removeListener(listener);
-            resolve();
-          }
-        });
+    // Wait for page to load
+    await new Promise((resolve) => {
+      chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+        if (tabId === newTab.id && changeInfo.status === 'complete') {
+          chrome.tabs.onUpdated.removeListener(listener);
+          resolve();
+        }
       });
-    }
+    });
     
     // Execute script to get page HTML
     const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
+      target: { tabId: newTab.id },
       func: () => document.documentElement.outerHTML
     });
+    
+    // Close the background tab after getting HTML
+    await chrome.tabs.remove(newTab.id);
+    console.log('Closed background tab:', newTab.id);
     
     return {
       htmlContent: results[0].result
