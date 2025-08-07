@@ -1,0 +1,8 @@
+{
+  "datime": "2025-08-07T01:14:53Z",
+  "taskName": "Get Page HTML",
+  "version": "0.1",
+  "artifactsJson": {
+    "HTML content": "test content from local workflow"
+  }
+}
