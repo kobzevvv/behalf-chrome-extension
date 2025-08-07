@@ -116,8 +116,13 @@ async function handleCheckTask(request, env, corsHeaders) {
     
     let dbUrl;
     const rawUrl = env.DATABASE_URL;
+    
+    if (!rawUrl) {
+      throw new Error('DATABASE_URL is undefined in environment');
+    }
+    
     console.log(`[${new Date().toISOString()}] Raw DATABASE_URL length: ${rawUrl.length}`);
-    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL first 50 chars: ${rawUrl.substring(0, 50)}`);
+    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL first 50 chars: ${rawUrl ? rawUrl.substring(0, 50) : 'undefined'}`);
     try {
       dbUrl = new URL(env.DATABASE_URL);
     } catch (urlError) {
@@ -130,7 +135,7 @@ async function handleCheckTask(request, env, corsHeaders) {
     console.log(`[${new Date().toISOString()}] Database connection details:`, { dbHost, hasPassword: !!dbPassword });
     
     // Use Neon's HTTP API
-    const neonResponse = await fetch(`https://${neonHost}/sql`, {
+    const neonResponse = await fetch(`https://${dbHost}/sql`, {
       method: 'POST',
       headers: {
         'neon-connection-string': env.DATABASE_URL,
@@ -219,8 +224,13 @@ async function handleReportTask(request, env, corsHeaders) {
     
     let dbUrl;
     const rawUrl = env.DATABASE_URL;
+    
+    if (!rawUrl) {
+      throw new Error('DATABASE_URL is undefined in environment');
+    }
+    
     console.log(`[${new Date().toISOString()}] Raw DATABASE_URL length: ${rawUrl.length}`);
-    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL first 50 chars: ${rawUrl.substring(0, 50)}`);
+    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL first 50 chars: ${rawUrl ? rawUrl.substring(0, 50) : 'undefined'}`);
     try {
       dbUrl = new URL(env.DATABASE_URL);
     } catch (urlError) {
@@ -231,7 +241,7 @@ async function handleReportTask(request, env, corsHeaders) {
     const dbPassword = dbUrl.password;
     
     // Use Neon's HTTP API to insert the task report
-    const neonResponse = await fetch(`https://${neonHost}/sql`, {
+    const neonResponse = await fetch(`https://${dbHost}/sql`, {
       method: 'POST',
       headers: {
         'neon-connection-string': env.DATABASE_URL,
@@ -286,16 +296,12 @@ main = "worker-with-env.js"
 compatibility_date = "2024-01-01"
 
 [env.production]
-vars = { DATABASE_URL = "$DATABASE_URL" }
 
 [observability.logs]
 enabled = true
 EOF
     echo "✅ Created wrangler.toml"
 fi
-
-# Update wrangler.toml with the actual DATABASE_URL value
-sed -i.bak "s|DATABASE_URL = \"\\$DATABASE_URL\"|DATABASE_URL = \"$DATABASE_URL\"|g" wrangler.toml
 
 # Deploy the worker with environment
 DATABASE_URL="$DATABASE_URL" wrangler deploy --env production

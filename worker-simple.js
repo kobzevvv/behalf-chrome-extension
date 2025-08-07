@@ -1,40 +1,4 @@
-#!/bin/bash
-
-# Deploy Cloudflare Worker with Neon database connection
-# This script uses environment variables instead of database bindings
-
-set -e
-
-# Load environment variables from .env file
-if [ -f ".env" ]; then
-    echo "📄 Loading environment variables from .env file..."
-    export $(cat .env | grep -v '^#' | xargs)
-else
-    echo "⚠️  No .env file found, using system environment variables"
-fi
-
-echo "🚀 Deploying Cloudflare Worker..."
-
-# Check if DATABASE_URL is set
-if [ -z "$DATABASE_URL" ]; then
-    echo "❌ DATABASE_URL environment variable is not set"
-    echo "Please set it in your .env file or export it:"
-    echo "export DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require"
-    exit 1
-fi
-
-# Check if CLOUDFLARE_WORKER_URL is set (optional - will be generated if not set)
-if [ -z "$CLOUDFLARE_WORKER_URL" ]; then
-    echo "⚠️  CLOUDFLARE_WORKER_URL not set - will be generated after deployment"
-    echo "You can set it in your .env file if you want a specific URL:"
-    echo "export CLOUDFLARE_WORKER_URL=https://your-worker.your-subdomain.workers.dev"
-fi
-
-# Create temporary worker file with environment variables
-echo "📝 Creating worker with environment variables..."
-
-cat > worker-with-env.js << 'EOF'
-// Cloudflare Worker with environment variables
+// Cloudflare Worker with hardcoded database connection
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -59,10 +23,10 @@ export default {
     try {
       if (path === '/api/check-task' && request.method === 'POST') {
         console.log(`[${new Date().toISOString()}] Processing check-task request`);
-        return await handleCheckTask(request, env, corsHeaders);
+        return await handleCheckTask(request, corsHeaders);
       } else if (path === '/api/report-task' && request.method === 'POST') {
         console.log(`[${new Date().toISOString()}] Processing report-task request`);
-        return await handleReportTask(request, env, corsHeaders);
+        return await handleReportTask(request, corsHeaders);
       } else {
         console.log(`[${new Date().toISOString()}] 404 - Path not found: ${path}`);
         return new Response('Not Found', { status: 404, headers: corsHeaders });
@@ -80,7 +44,7 @@ export default {
   }
 };
 
-async function handleCheckTask(request, env, corsHeaders) {
+async function handleCheckTask(request, corsHeaders) {
   const requestData = await request.json();
   const { browserId } = requestData;
 
@@ -98,42 +62,19 @@ async function handleCheckTask(request, env, corsHeaders) {
   }
 
   try {
-    // Connect to Neon database using HTTP API
+    // Connect to Neon database using HTTP API with hardcoded connection
     console.log(`[${new Date().toISOString()}] Connecting to database...`);
     
-    if (!env.DATABASE_URL) {
-      throw new Error('DATABASE_URL environment variable is not set');
-    }
+    const neonHost = "ep-aged-mouse-ab3hsik6-pooler.eu-west-2.aws.neon.tech";
+    const databaseUrl = "postgresql://neondb_owner:npg_EfROwd2s4Pgu@ep-aged-mouse-ab3hsik6-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
     
-    console.log(`[${new Date().toISOString()}] DATABASE_URL available: ${!!env.DATABASE_URL}`);
-    
-    // Parse the DATABASE_URL to extract connection details
-    console.log(`[${new Date().toISOString()}] Full DATABASE_URL: ${env.DATABASE_URL}`);
-    
-    if (!env.DATABASE_URL) {
-      throw new Error('DATABASE_URL environment variable is not available');
-    }
-    
-    let dbUrl;
-    const rawUrl = env.DATABASE_URL;
-    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL length: ${rawUrl.length}`);
-    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL first 50 chars: ${rawUrl.substring(0, 50)}`);
-    try {
-      dbUrl = new URL(env.DATABASE_URL);
-    } catch (urlError) {
-      console.error(`[${new Date().toISOString()}] URL parsing error:`, urlError);
-      throw new Error(`Invalid DATABASE_URL format: ${urlError.message}`);
-    }
-    const dbHost = dbUrl.hostname;
-    const dbPassword = dbUrl.password;
-    
-    console.log(`[${new Date().toISOString()}] Database connection details:`, { dbHost, hasPassword: !!dbPassword });
+    console.log(`[${new Date().toISOString()}] Using hardcoded database connection to: ${neonHost}`);
     
     // Use Neon's HTTP API
     const neonResponse = await fetch(`https://${neonHost}/sql`, {
       method: 'POST',
       headers: {
-        'neon-connection-string': env.DATABASE_URL,
+        'neon-connection-string': databaseUrl,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -189,7 +130,7 @@ async function handleCheckTask(request, env, corsHeaders) {
   }
 }
 
-async function handleReportTask(request, env, corsHeaders) {
+async function handleReportTask(request, corsHeaders) {
   const requestData = await request.json();
   const { datime, taskName, version, artifactsJson } = requestData;
 
@@ -207,34 +148,19 @@ async function handleReportTask(request, env, corsHeaders) {
   }
 
   try {
-    // Connect to Neon database using HTTP API
+    // Connect to Neon database using HTTP API with hardcoded connection
     console.log(`[${new Date().toISOString()}] Saving task completion to database...`);
     
-    // Parse the DATABASE_URL to extract connection details
-    console.log(`[${new Date().toISOString()}] Full DATABASE_URL: ${env.DATABASE_URL}`);
+    const neonHost = "ep-aged-mouse-ab3hsik6-pooler.eu-west-2.aws.neon.tech";
+    const databaseUrl = "postgresql://neondb_owner:npg_EfROwd2s4Pgu@ep-aged-mouse-ab3hsik6-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
     
-    if (!env.DATABASE_URL) {
-      throw new Error('DATABASE_URL environment variable is not available');
-    }
-    
-    let dbUrl;
-    const rawUrl = env.DATABASE_URL;
-    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL length: ${rawUrl.length}`);
-    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL first 50 chars: ${rawUrl.substring(0, 50)}`);
-    try {
-      dbUrl = new URL(env.DATABASE_URL);
-    } catch (urlError) {
-      console.error(`[${new Date().toISOString()}] URL parsing error:`, urlError);
-      throw new Error(`Invalid DATABASE_URL format: ${urlError.message}`);
-    }
-    const dbHost = dbUrl.hostname;
-    const dbPassword = dbUrl.password;
+    console.log(`[${new Date().toISOString()}] Using hardcoded database connection to: ${neonHost}`);
     
     // Use Neon's HTTP API to insert the task report
     const neonResponse = await fetch(`https://${neonHost}/sql`, {
       method: 'POST',
       headers: {
-        'neon-connection-string': env.DATABASE_URL,
+        'neon-connection-string': databaseUrl,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -271,49 +197,3 @@ async function handleReportTask(request, env, corsHeaders) {
     );
   }
 }
-EOF
-
-echo "✅ Worker code created with environment variables"
-
-# Deploy using wrangler
-echo "🚀 Deploying to Cloudflare..."
-
-# Create wrangler.toml if it doesn't exist
-if [ ! -f "wrangler.toml" ]; then
-    cat > wrangler.toml << EOF
-name = "behalf-task-manager"
-main = "worker-with-env.js"
-compatibility_date = "2024-01-01"
-
-[env.production]
-vars = { DATABASE_URL = "$DATABASE_URL" }
-
-[observability.logs]
-enabled = true
-EOF
-    echo "✅ Created wrangler.toml"
-fi
-
-# Update wrangler.toml with the actual DATABASE_URL value
-sed -i.bak "s|DATABASE_URL = \"\\$DATABASE_URL\"|DATABASE_URL = \"$DATABASE_URL\"|g" wrangler.toml
-
-# Deploy the worker with environment
-DATABASE_URL="$DATABASE_URL" wrangler deploy --env production
-
-# Get the deployed worker URL from the deployment output
-WORKER_URL="behalf-task-manager.dev-a96.workers.dev"
-
-echo "✅ Worker deployed successfully!"
-echo "🌐 Worker URL: https://$WORKER_URL"
-
-# Update background.js with the worker URL
-echo "📝 Updating Chrome extension with Worker URL..."
-sed -i.bak "s|YOUR_CLOUDFLARE_WORKER_URL|https://$WORKER_URL|g" background.js
-
-echo "✅ Chrome extension updated with Worker URL"
-echo ""
-echo "🎉 Deployment complete!"
-echo "📋 Next steps:"
-echo "1. Load the Chrome extension in chrome://extensions/"
-echo "2. Set browser_id to 'test_browser_id'"
-echo "3. Test the connection"

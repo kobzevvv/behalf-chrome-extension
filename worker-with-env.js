@@ -1,39 +1,3 @@
-#!/bin/bash
-
-# Deploy Cloudflare Worker with Neon database connection
-# This script uses environment variables instead of database bindings
-
-set -e
-
-# Load environment variables from .env file
-if [ -f ".env" ]; then
-    echo "📄 Loading environment variables from .env file..."
-    export $(cat .env | grep -v '^#' | xargs)
-else
-    echo "⚠️  No .env file found, using system environment variables"
-fi
-
-echo "🚀 Deploying Cloudflare Worker..."
-
-# Check if DATABASE_URL is set
-if [ -z "$DATABASE_URL" ]; then
-    echo "❌ DATABASE_URL environment variable is not set"
-    echo "Please set it in your .env file or export it:"
-    echo "export DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require"
-    exit 1
-fi
-
-# Check if CLOUDFLARE_WORKER_URL is set (optional - will be generated if not set)
-if [ -z "$CLOUDFLARE_WORKER_URL" ]; then
-    echo "⚠️  CLOUDFLARE_WORKER_URL not set - will be generated after deployment"
-    echo "You can set it in your .env file if you want a specific URL:"
-    echo "export CLOUDFLARE_WORKER_URL=https://your-worker.your-subdomain.workers.dev"
-fi
-
-# Create temporary worker file with environment variables
-echo "📝 Creating worker with environment variables..."
-
-cat > worker-with-env.js << 'EOF'
 // Cloudflare Worker with environment variables
 export default {
   async fetch(request, env, ctx) {
@@ -116,8 +80,13 @@ async function handleCheckTask(request, env, corsHeaders) {
     
     let dbUrl;
     const rawUrl = env.DATABASE_URL;
+    
+    if (!rawUrl) {
+      throw new Error('DATABASE_URL is undefined in environment');
+    }
+    
     console.log(`[${new Date().toISOString()}] Raw DATABASE_URL length: ${rawUrl.length}`);
-    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL first 50 chars: ${rawUrl.substring(0, 50)}`);
+    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL first 50 chars: ${rawUrl ? rawUrl.substring(0, 50) : 'undefined'}`);
     try {
       dbUrl = new URL(env.DATABASE_URL);
     } catch (urlError) {
@@ -130,7 +99,7 @@ async function handleCheckTask(request, env, corsHeaders) {
     console.log(`[${new Date().toISOString()}] Database connection details:`, { dbHost, hasPassword: !!dbPassword });
     
     // Use Neon's HTTP API
-    const neonResponse = await fetch(`https://${neonHost}/sql`, {
+    const neonResponse = await fetch(`https://${dbHost}/sql`, {
       method: 'POST',
       headers: {
         'neon-connection-string': env.DATABASE_URL,
@@ -219,8 +188,13 @@ async function handleReportTask(request, env, corsHeaders) {
     
     let dbUrl;
     const rawUrl = env.DATABASE_URL;
+    
+    if (!rawUrl) {
+      throw new Error('DATABASE_URL is undefined in environment');
+    }
+    
     console.log(`[${new Date().toISOString()}] Raw DATABASE_URL length: ${rawUrl.length}`);
-    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL first 50 chars: ${rawUrl.substring(0, 50)}`);
+    console.log(`[${new Date().toISOString()}] Raw DATABASE_URL first 50 chars: ${rawUrl ? rawUrl.substring(0, 50) : 'undefined'}`);
     try {
       dbUrl = new URL(env.DATABASE_URL);
     } catch (urlError) {
@@ -231,7 +205,7 @@ async function handleReportTask(request, env, corsHeaders) {
     const dbPassword = dbUrl.password;
     
     // Use Neon's HTTP API to insert the task report
-    const neonResponse = await fetch(`https://${neonHost}/sql`, {
+    const neonResponse = await fetch(`https://${dbHost}/sql`, {
       method: 'POST',
       headers: {
         'neon-connection-string': env.DATABASE_URL,
@@ -271,49 +245,3 @@ async function handleReportTask(request, env, corsHeaders) {
     );
   }
 }
-EOF
-
-echo "✅ Worker code created with environment variables"
-
-# Deploy using wrangler
-echo "🚀 Deploying to Cloudflare..."
-
-# Create wrangler.toml if it doesn't exist
-if [ ! -f "wrangler.toml" ]; then
-    cat > wrangler.toml << EOF
-name = "behalf-task-manager"
-main = "worker-with-env.js"
-compatibility_date = "2024-01-01"
-
-[env.production]
-vars = { DATABASE_URL = "$DATABASE_URL" }
-
-[observability.logs]
-enabled = true
-EOF
-    echo "✅ Created wrangler.toml"
-fi
-
-# Update wrangler.toml with the actual DATABASE_URL value
-sed -i.bak "s|DATABASE_URL = \"\\$DATABASE_URL\"|DATABASE_URL = \"$DATABASE_URL\"|g" wrangler.toml
-
-# Deploy the worker with environment
-DATABASE_URL="$DATABASE_URL" wrangler deploy --env production
-
-# Get the deployed worker URL from the deployment output
-WORKER_URL="behalf-task-manager.dev-a96.workers.dev"
-
-echo "✅ Worker deployed successfully!"
-echo "🌐 Worker URL: https://$WORKER_URL"
-
-# Update background.js with the worker URL
-echo "📝 Updating Chrome extension with Worker URL..."
-sed -i.bak "s|YOUR_CLOUDFLARE_WORKER_URL|https://$WORKER_URL|g" background.js
-
-echo "✅ Chrome extension updated with Worker URL"
-echo ""
-echo "🎉 Deployment complete!"
-echo "📋 Next steps:"
-echo "1. Load the Chrome extension in chrome://extensions/"
-echo "2. Set browser_id to 'test_browser_id'"
-echo "3. Test the connection"

@@ -29,7 +29,28 @@ document.addEventListener('DOMContentLoaded', function() {
         action: 'updateBrowserId',
         browserId: browserId
       });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
+  });
     });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
+  });
+  });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
   });
 
   // Save Interval button click handler
@@ -48,7 +69,28 @@ document.addEventListener('DOMContentLoaded', function() {
         action: 'updateTaskInterval',
         interval: interval
       });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
+  });
     });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
+  });
+  });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
   });
 
   // Test Connection button click handler
@@ -70,7 +112,21 @@ document.addEventListener('DOMContentLoaded', function() {
           showStatus('Connection test failed: ' + (response?.error || 'Unknown error'), 'error');
         }
       });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
+  });
     });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
+  });
   // Run Tasks Now button click handler
   runTasksNowBtn.addEventListener("click", function() {
     chrome.storage.local.get(["browserId"], function(result) {
@@ -92,7 +148,28 @@ document.addEventListener('DOMContentLoaded', function() {
           showStatus("Task execution failed: " + (response?.error || "Unknown error"), "error");
         }
       });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
+  });
     });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
+  });
+  });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
   });  });
 
   function loadSavedValues() {
@@ -104,6 +181,13 @@ document.addEventListener('DOMContentLoaded', function() {
         taskInterval.value = result.taskInterval;
       }
     });
+
+  // Clear Status button click handler
+  clearStatusBtn.addEventListener("click", function() {
+    statusMessage.textContent = "";
+    statusMessage.className = "status";
+    clearStatusBtn.style.display = "none";
+  });
   }
 
   function displayCurrentBrowserId(browserId) {
@@ -112,10 +196,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function showStatus(message, type) {
+    clearStatusBtn.style.display = type === "error" ? "block" : "none";
     statusMessage.textContent = message;
     statusMessage.className = 'status ' + type;
     
-    // Clear status after 3 seconds
+    // Clear status after 10 seconds for errors, 5 seconds for success
+        const timeout = type === "error" ? 10000 : 5000;
     setTimeout(() => {
       statusMessage.textContent = '';
       statusMessage.className = 'status';

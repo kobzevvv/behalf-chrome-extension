@@ -6,7 +6,7 @@
   "scripts": {
     "setup-db": "node setup-database.js",
     "test-connection": "node -e \"require('dotenv').config(); const { Pool } = require('pg'); const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }); pool.query('SELECT NOW()').then(result => { console.log('✅ Database connection successful:', result.rows[0]); pool.end(); }).catch(err => { console.error('❌ Database connection failed:', err.message); process.exit(1); });\"",
-    "deploy-worker": "./deploy-worker.sh",
+    "deploy-worker": "./deploy-worker-simple.sh",
     "add-test-task": "node add-test-task.js"
   },
   "keywords": [
