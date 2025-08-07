@@ -1,0 +1,28 @@
+{
+  "name": "behalf-chrome-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension for managing browser tasks and communication with Cloudflare worker",
+  "main": "setup-database.js",
+  "scripts": {
+    "setup-db": "node setup-database.js",
+    "test-connection": "node -e \"require('dotenv').config(); const { Pool } = require('pg'); const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }); pool.query('SELECT NOW()').then(result => { console.log('✅ Database connection successful:', result.rows[0]); pool.end(); }).catch(err => { console.error('❌ Database connection failed:', err.message); process.exit(1); });\"",
+    "deploy-worker": "./deploy-worker.sh",
+    "add-test-task": "node add-test-task.js"
+  },
+  "keywords": [
+    "chrome-extension",
+    "cloudflare-worker",
+    "neon-database",
+    "task-management"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

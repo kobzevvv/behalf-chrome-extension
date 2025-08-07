@@ -1,0 +1,10 @@
+name = "behalf-task-manager"
+main = "worker-with-env.js"
+compatibility_date = "2024-01-01"
+
+[env.production]
+vars = { DATABASE_URL = "postgresql://neondb_owner:npg_EfROwd2..." }
+
+# wrangler.toml (wrangler v3.88.0^)
+[observability.logs]
+enabled = true
