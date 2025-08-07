@@ -71,7 +71,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
     });
-  });
+  // Run Tasks Now button click handler
+  runTasksNowBtn.addEventListener("click", function() {
+    chrome.storage.local.get(["browserId"], function(result) {
+      if (!result.browserId) {
+        showStatus("Please set a browser ID first", "error");
+        return;
+      }
+
+      showStatus("Running tasks now...", "success");
+
+      // Send manual task execution request to background script
+      chrome.runtime.sendMessage({
+        action: "runTasksNow",
+        browserId: result.browserId
+      }, function(response) {
+        if (response && response.success) {
+          showStatus("Tasks executed successfully!", "success");
+        } else {
+          showStatus("Task execution failed: " + (response?.error || "Unknown error"), "error");
+        }
+      });
+    });
+  });  });
 
   function loadSavedValues() {
     chrome.storage.local.get(['browserId', 'taskInterval'], function(result) {

@@ -30,6 +30,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       testConnection(message.browserId, sendResponse);
       return true; // Keep message channel open for async response
       
+    case "runTasksNow":
+      runTasksNow(message.browserId, sendResponse);
+      return true; // Keep message channel open for async response
+      
     default:
       sendResponse({ success: false, error: 'Unknown action' });
   }
@@ -111,7 +115,11 @@ async function executeTask(task) {
       case 'Get Page HTML':
         result = await getPageHTML(task.paramsJson.URL);
         break;
-      default:
+      case "runTasksNow":
+      runTasksNow(message.browserId, sendResponse);
+      return true; // Keep message channel open for async response
+      
+    default:
         throw new Error(`Unknown task type: ${task.taskName}`);
     }
     
@@ -214,3 +222,38 @@ async function testConnection(browserId, sendResponse) {
     sendResponse({ success: false, error: error.message });
   }
 } 
+async function runTasksNow(browserId, sendResponse) {
+  try {
+    console.log('Manual task execution triggered for browserId:', browserId);
+    
+    // Use the same logic as checkForTasks but with the provided browserId
+    const response = await fetch(`${CLOUDFLARE_WORKER_URL}${TASK_CHECK_ENDPOINT}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        browserId: browserId
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const taskData = await response.json();
+    
+    if (taskData.hasTask) {
+      console.log('Task found and executing:', taskData.task);
+      await executeTask(taskData.task);
+      sendResponse({ success: true, message: 'Task executed successfully' });
+    } else {
+      console.log('No tasks available for manual execution');
+      sendResponse({ success: true, message: 'No tasks available' });
+    }
+    
+  } catch (error) {
+    console.error('Error in manual task execution:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
