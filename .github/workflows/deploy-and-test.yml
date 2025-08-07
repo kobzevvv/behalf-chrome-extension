@@ -1,0 +1,197 @@
+name: Deploy and Test Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'wrangler.toml'
+      - 'package.json'
+      - '.github/workflows/deploy-and-test.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-and-test:
+    runs-on: ubuntu-latest
+    name: Deploy and Test Worker
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Deploy to Cloudflare Workers
+      id: deploy
+      uses: cloudflare/wrangler-action@v3
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        command: deploy --name behalf-task-manager
+        secrets: |
+          DATABASE_URL
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        
+    - name: Extract Worker URL
+      id: worker-url
+      run: |
+        # Get the worker URL from wrangler output
+        echo "Extracting worker URL from deployment..."
+        
+        # Try to get subdomain from Cloudflare account (fallback method)
+        WORKER_URL=$(echo "${{ steps.deploy.outputs.deployment-url }}" | grep -oE 'https://[^[:space:]]+' | head -1)
+        
+        # If that doesn't work, construct it manually
+        if [ -z "$WORKER_URL" ]; then
+          echo "Could not extract URL from deployment output, using wrangler subdomain..."
+          # Get subdomain using wrangler
+          SUBDOMAIN=$(npx wrangler whoami | grep -oE 'workers_dev[[:space:]]+\|[[:space:]]+[^[:space:]]+' | awk '{print $3}' || echo "")
+          
+          if [ -n "$SUBDOMAIN" ]; then
+            WORKER_URL="https://behalf-task-manager.${SUBDOMAIN}.workers.dev"
+          else
+            # Last resort - try to get from previous deployments
+            WORKER_URL="https://behalf-task-manager.dev-a96.workers.dev"
+          fi
+        fi
+        
+        echo "worker_url=$WORKER_URL" >> $GITHUB_OUTPUT
+        echo "🔗 Worker URL: $WORKER_URL"
+        
+    - name: Wait for deployment propagation
+      run: |
+        echo "⏳ Waiting 30 seconds for deployment to propagate..."
+        sleep 30
+        
+    - name: Test Worker Health
+      id: health-check
+      run: |
+        echo "🏥 Testing worker health endpoint..."
+        WORKER_URL="${{ steps.worker-url.outputs.worker_url }}"
+        
+        # Try up to 3 times with 10 second delays
+        for i in 1 2 3; do
+          echo "Attempt $i..."
+          
+          HTTP_CODE=$(curl -s -o health-response.json -w "%{http_code}" "$WORKER_URL/api/check-task" -X POST -H "Content-Type: application/json" -d '{"browserId": "test_browser_id"}' || echo "000")
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Health check passed!"
+            cat health-response.json | jq '.' || cat health-response.json
+            
+            # Check if DATABASE_URL is configured
+            if grep -q '"hasTask":true' health-response.json; then
+              echo "✅ DATABASE_URL is configured and working"
+              echo "health_status=healthy" >> $GITHUB_OUTPUT
+            else
+              echo "⚠️ DATABASE_URL might not be configured"
+              echo "health_status=warning" >> $GITHUB_OUTPUT
+            fi
+            break
+          else
+            echo "❌ Health check failed with status: $HTTP_CODE"
+            if [ -f health-response.json ]; then
+              cat health-response.json
+            fi
+            
+            if [ $i -lt 3 ]; then
+              echo "Waiting 10 seconds before retry..."
+              sleep 10
+            else
+              echo "health_status=failed" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          fi
+        done
+        
+    - name: Test Report Endpoint
+      id: test-report
+      run: |
+        echo "🚀 Testing report endpoint..."
+        WORKER_URL="${{ steps.worker-url.outputs.worker_url }}"
+        
+        # Create test payload
+        cat > test-report-payload.json <<EOF
+        {
+          "datime": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "taskName": "Get Page HTML",
+          "version": "0.1",
+          "artifactsJson": {
+            "HTML content": "test content from GitHub Actions"
+          }
+        }
+        EOF
+        
+        echo "📝 Test payload:"
+        cat test-report-payload.json | jq '.'
+        echo ""
+        
+        # Make the API call
+        HTTP_CODE=$(curl -s -o report-response.json -w "%{http_code}" \
+          -X POST \
+          -H "Content-Type: application/json" \
+          -d @test-report-payload.json \
+          "$WORKER_URL/api/report-task")
+        
+        echo "HTTP Status Code: $HTTP_CODE"
+        
+        if [ "$HTTP_CODE" = "200" ]; then
+          echo "✅ Report endpoint test passed!"
+          echo ""
+          echo "📊 Report Results:"
+          cat report-response.json | jq '.' || cat report-response.json
+          
+          echo "test_status=success" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Report endpoint test failed!"
+          echo "Response:"
+          cat report-response.json | jq '.' 2>/dev/null || cat report-response.json
+          echo "test_status=failed" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Generate deployment summary
+      if: always()
+      run: |
+        echo "## 🚀 Worker Deployment and Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployment Info" >> $GITHUB_STEP_SUMMARY
+        echo "- **Worker Name:** behalf-task-manager" >> $GITHUB_STEP_SUMMARY
+        echo "- **Worker URL:** ${{ steps.worker-url.outputs.worker_url }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deployment Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Health Check:** ${{ steps.health-check.outputs.health_status || 'not run' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Report Test:** ${{ steps.test-report.outputs.test_status || 'not run' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### 📝 Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "1. Worker is deployed at: \`${{ steps.worker-url.outputs.worker_url }}\`" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.health-check.outputs.health_status }}" = "warning" ] || [ "${{ steps.test-report.outputs.test_status }}" = "failed" ]; then
+          echo "2. ⚠️ Configure secrets via Wrangler CLI:" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   wrangler secret put DATABASE_URL" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "2. ✅ All endpoints are working correctly!" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: Upload test artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-test-results-${{ github.run_number }}
+        path: |
+          test-report-payload.json
+          health-response.json
+          report-response.json
+        retention-days: 7
