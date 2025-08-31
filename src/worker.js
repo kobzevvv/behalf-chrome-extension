@@ -1,4 +1,6 @@
 // Cloudflare Worker with environment variables
+import { queries } from './dataModel.js';
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -27,6 +29,9 @@ export default {
       } else if (path === '/api/report-task' && request.method === 'POST') {
         console.log(`[${new Date().toISOString()}] Processing report-task request`);
         return await handleReportTask(request, env, corsHeaders);
+      } else if (path === '/api/enqueue-get-page-html' && request.method === 'GET') {
+        console.log(`[${new Date().toISOString()}] Processing enqueue-get-page-html request`);
+        return await handleEnqueueGetPageHtml(url, env, corsHeaders);
       } else {
         console.log(`[${new Date().toISOString()}] 404 - Path not found: ${path}`);
         return new Response('Not Found', { status: 404, headers: corsHeaders });
@@ -106,7 +111,7 @@ async function handleCheckTask(request, env, corsHeaders) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: 'SELECT * FROM tasks_ques WHERE browser_id = $1 LIMIT 1',
+        query: queries.selectPendingTaskForBrowser.text,
         params: [browserId]
       })
     });
@@ -121,10 +126,11 @@ async function handleCheckTask(request, env, corsHeaders) {
     if (dbResult.rows && dbResult.rows.length > 0) {
       const task = dbResult.rows[0];
       console.log(`[${new Date().toISOString()}] Found task in database:`, task);
-      
+
       const response = {
         hasTask: true,
         task: {
+          taskId: task.id,
           taskName: task.task,
           paramsJson: JSON.parse(task.params_json)
         }
@@ -160,11 +166,11 @@ async function handleCheckTask(request, env, corsHeaders) {
 
 async function handleReportTask(request, env, corsHeaders) {
   const requestData = await request.json();
-  const { datime, taskName, version, artifactsJson } = requestData;
+  const { taskId, datime, taskName, version, artifactsJson } = requestData;
 
   console.log(`[${new Date().toISOString()}] Report task request:`, { datime, taskName, version });
 
-  if (!datime || !taskName || !version || !artifactsJson) {
+  if (!taskId || !datime || !taskName || !version || !artifactsJson) {
     console.log(`[${new Date().toISOString()}] Error: Missing required fields`);
     return new Response(
       JSON.stringify({ error: 'Missing required fields' }), 
@@ -212,8 +218,8 @@ async function handleReportTask(request, env, corsHeaders) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: 'INSERT INTO worker_report (datime, task_name, version, artifacts_json) VALUES ($1, $2, $3, $4)',
-        params: [datime, taskName, version, JSON.stringify(artifactsJson)]
+        query: queries.insertWorkerReport.text,
+        params: [taskId, datime, taskName, version, JSON.stringify(artifactsJson)]
       })
     });
 
@@ -241,6 +247,93 @@ async function handleReportTask(request, env, corsHeaders) {
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+async function handleEnqueueGetPageHtml(url, env, corsHeaders) {
+  const browserId = (url.searchParams.get('browserId') || '').trim();
+  const targetUrl = (url.searchParams.get('url') || '').trim();
+
+  console.log(`[${new Date().toISOString()}] Enqueue request for browserId: ${browserId}, url: ${targetUrl}`);
+
+  if (!browserId) {
+    return new Response(
+      JSON.stringify({ error: 'browserId is required' }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+  if (!targetUrl) {
+    return new Response(
+      JSON.stringify({ error: 'url is required' }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  try {
+    // Validate URL format
+    try {
+      new URL(targetUrl);
+    } catch (_) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid url format' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (!env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is not set');
+    }
+
+    let dbUrl;
+    try {
+      dbUrl = new URL(env.DATABASE_URL);
+    } catch (urlError) {
+      console.error(`[${new Date().toISOString()}] URL parsing error:`, urlError);
+      throw new Error(`Invalid DATABASE_URL format: ${urlError.message}`);
+    }
+    const dbHost = dbUrl.hostname;
+
+    const neonResponse = await fetch(`https://${dbHost}/sql`, {
+      method: 'POST',
+      headers: {
+        'neon-connection-string': env.DATABASE_URL,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: 'INSERT INTO tasks_ques (browser_id, task, params_json) VALUES ($1, $2, $3) RETURNING id',
+        params: [browserId, 'Get Page HTML', JSON.stringify({ URL: targetUrl })]
+      })
+    });
+
+    if (!neonResponse.ok) {
+      throw new Error(`Database insert failed: ${neonResponse.status} - ${await neonResponse.text()}`);
+    }
+
+    const result = await neonResponse.json();
+    const insertedId = result?.rows?.[0]?.id ?? null;
+
+    return new Response(
+      JSON.stringify({ success: true, id: insertedId, browserId, url: targetUrl }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Database error:`, error);
+    return new Response(
+      JSON.stringify({ error: 'Database error: ' + error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

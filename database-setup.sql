@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS tasks_ques (
 -- This will only create the table if it doesn't already exist
 CREATE TABLE IF NOT EXISTS worker_report (
     id SERIAL PRIMARY KEY,
+    task_id INTEGER,
     datime TIMESTAMP NOT NULL,
     task_name VARCHAR(255) NOT NULL,
     version VARCHAR(50) NOT NULL,
@@ -29,6 +30,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_ques_browser_id ON tasks_ques(browser_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_ques_created_at ON tasks_ques(created_at);
 CREATE INDEX IF NOT EXISTS idx_worker_report_datime ON worker_report(datime);
 CREATE INDEX IF NOT EXISTS idx_worker_report_task_name ON worker_report(task_name);
+CREATE INDEX IF NOT EXISTS idx_worker_report_task_id ON worker_report(task_id);
 
 -- Insert test data for the extension (safe - won't duplicate)
 -- ON CONFLICT DO NOTHING ensures this won't fail if data already exists
