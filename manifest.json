@@ -6,7 +6,11 @@
   "permissions": [
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "alarms"
+  ],
+  "optional_permissions": [
+    "tabs"
   ],
   "host_permissions": [
     "https://*/*",

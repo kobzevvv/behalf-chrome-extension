@@ -33,6 +33,21 @@ async function setupDatabase() {
     `);
     console.log(`📊 Found ${existingTables.rows.length} existing tables in database`);
 
+    // Pre-migration: ensure worker_report.task_id exists before running file-based setup (idempotent)
+    console.log('🔧 Pre-migration: ensuring worker_report.task_id exists...');
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name='worker_report' AND column_name='task_id'
+        ) THEN
+          ALTER TABLE worker_report ADD COLUMN task_id INTEGER;
+        END IF;
+      END$$;
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_worker_report_task_id ON worker_report(task_id);`);
+
     // Read and execute the SQL setup script
     const fs = require('fs');
     const sqlScript = fs.readFileSync('./database-setup.sql', 'utf8');
@@ -52,7 +67,9 @@ async function setupDatabase() {
     `);
     
     console.log('📊 Created tables:', tablesResult.rows.map(row => row.table_name));
-    
+
+    // Safe migration (redundant guard) already handled above
+
     // Check test data
     const testDataResult = await client.query(`
       SELECT browser_id, Task, created_at 

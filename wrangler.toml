@@ -2,13 +2,8 @@ name = "behalf-task-manager"
 main = "src/worker.js"
 compatibility_date = "2024-01-01"
 
-[env.production]
-# For GitHub Actions deployment - secrets will be injected automatically
-vars = { DATABASE_URL = "postgresql://neondb_owner:npg_EfROwd2s4Pgu@ep-aged-mouse-ab3hsik6-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require" }
-
-[env.development]
-# For local development - will use .env file
-vars = { DATABASE_URL = "postgresql://neondb_owner:npg_EfROwd2s4Pgu@ep-aged-mouse-ab3hsik6-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require" }
+[vars]
+DATABASE_URL = "postgresql://neondb_owner:npg_EfROwd2s4Pgu@ep-aged-mouse-ab3hsik6-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
 [observability.logs]
 enabled = true

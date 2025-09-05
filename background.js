@@ -11,6 +11,13 @@ let currentTaskInterval = 300; // Default 5 minutes
 chrome.runtime.onStartup.addListener(initializeExtension);
 chrome.runtime.onInstalled.addListener(initializeExtension);
 
+// Ensure alarms-driven polling keeps working even if the service worker sleeps
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'behalf-task-check') {
+    checkForTasks();
+  }
+});
+
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.action) {
@@ -65,6 +72,22 @@ function startTaskChecking() {
   if (currentBrowserId) {
     taskCheckInterval = setInterval(checkForTasks, currentTaskInterval * 1000);
     console.log(`Task checking started with interval: ${currentTaskInterval} seconds`);
+    // Trigger an immediate check so the user doesn't need to press anything
+    checkForTasks();
+
+    // Also schedule via chrome.alarms for reliability when service worker is suspended
+    try {
+      chrome.alarms.clear('behalf-task-check', () => {
+        const periodMinutes = Math.max(1, currentTaskInterval / 60);
+        chrome.alarms.create('behalf-task-check', {
+          delayInMinutes: 1,
+          periodInMinutes: periodMinutes
+        });
+      });
+      console.log('Alarms-based polling scheduled');
+    } catch (e) {
+      console.warn('Failed to schedule alarms-based polling:', e);
+    }
   }
 }
 
@@ -115,12 +138,9 @@ async function executeTask(task) {
       case 'Get Page HTML':
         result = await getPageHTML(task.paramsJson.URL);
         break;
-      case "runTasksNow":
-      runTasksNow(message.browserId, sendResponse);
-      return true; // Keep message channel open for async response
       
-    default:
-        throw new Error(`Unknown task type: ${task.taskName}`);
+      default:
+          throw new Error(`Unknown task type: ${task.taskName}`);
     }
     
     // Report task completion
@@ -176,6 +196,7 @@ async function getPageHTML(url) {
 async function reportTaskCompletion(task, result) {
   try {
     const reportData = {
+      taskId: task.taskId,
       datime: new Date().toISOString(),
       taskName: task.taskName,
       version: '0.1',

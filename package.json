@@ -9,7 +9,9 @@
     "deploy-worker": "./deploy-worker-simple.sh",
     "deploy-dev": "./deploy-dev.sh",
     "test-workflow": "./test-workflow-local.sh",
-    "add-test-task": "node add-test-task.js"
+    "add-test-task": "node add-test-task.js",
+    "enqueue-task": "node scripts/enqueue-task.js",
+    "clear-test-data": "node scripts/clear-test-data.js"
   },
   "keywords": [
     "chrome-extension",
