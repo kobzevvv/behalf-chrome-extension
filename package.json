@@ -3,21 +3,15 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Chrome extension for managing browser tasks and communication with Cloudflare worker",
-  "main": "setup-database.js",
+  "main": "worker/index-full.ts",
   "scripts": {
-    "setup-db": "node setup-database.js",
-    "test-connection": "node -e \"require('dotenv').config(); const { Pool } = require('pg'); const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }); pool.query('SELECT NOW()').then(result => { console.log('✅ Database connection successful:', result.rows[0]); pool.end(); }).catch(err => { console.error('❌ Database connection failed:', err.message); process.exit(1); });\"",
-    "deploy-worker": "./deploy-worker-simple.sh",
-    "deploy-dev": "./deploy-dev.sh",
-    "test-workflow": "./test-workflow-local.sh",
-    "add-test-task": "node add-test-task.js",
-    "enqueue-task": "node scripts/enqueue-task.js",
-    "clear-test-data": "node scripts/clear-test-data.js",
     "test": "node test/run-tests.js",
     "test:webhook": "node test/webhook-service.js",
     "test:e2e": "node test/run-tests.js",
-    "dev": "wrangler dev --port 8787",
+    "dev": "wrangler dev --config wrangler-full.toml --port 8788",
+    "dev:simple": "wrangler dev --config wrangler-simple.toml --port 8787",
     "deploy": "wrangler deploy",
+    "deploy:versions": "wrangler versions upload",
     "build": "tsc",
     "setup-d1": "wrangler d1 create behalf && wrangler d1 execute behalf --file=worker/d1-schema.sql"
   },
@@ -31,17 +25,15 @@
   "license": "MIT",
   "dependencies": {
     "chai": "^4.3.10",
-    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "pg": "^8.11.3",
-    "puppeteer": "^21.5.0"
+    "puppeteer": "^23.5.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250913.0",
     "@types/node": "^20.8.0",
     "itty-router": "^4.0.23",
     "typescript": "^5.2.2",
-    "wrangler": "^3.15.0"
+    "wrangler": "^4.37.0"
   },
   "engines": {
     "node": ">=14.0.0"
