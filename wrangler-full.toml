@@ -1,11 +1,13 @@
-name = "behalf-task-manager-simple"
-main = "worker/index-simple.ts"
+name = "behalf-task-manager-full"
+main = "worker/index-full.ts"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
 # Environment variables
 [vars]
 NODE_ENV = "development"
+WEBHOOK_SECRET_KEY = "development-webhook-secret-key-123"
+API_SECRET_KEY = "development-api-secret-key-456"
 
 # Observability
 [observability.logs]

@@ -1,9 +1,49 @@
 name = "behalf-task-manager"
-main = "src/worker.js"
-compatibility_date = "2024-01-01"
+main = "worker/index-full.ts"
+compatibility_date = "2025-09-15"
+compatibility_flags = ["nodejs_compat"]
 
 [vars]
-DATABASE_URL = "postgresql://neondb_owner:npg_EfROwd2s4Pgu@ep-aged-mouse-ab3hsik6-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+NODE_ENV = "production"
 
-[observability.logs]
+# D1 database for job metadata (create this database in Cloudflare dashboard first)
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "behalf"
+# database_id = "your-d1-database-id"
+
+# R2 bucket for content storage (create this bucket in Cloudflare dashboard first)
+# [[r2_buckets]]
+# binding = "R2"
+# bucket_name = "behalf-ingestion"
+
+# KV namespace (optional for caching)
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "your-kv-namespace-id"
+
+# Queues configuration (not implemented yet)
+# [[queues.producers]]
+# binding = "PARSE_QUEUE"
+# queue = "parse-queue"
+
+# [[queues.producers]]
+# binding = "CALLBACKS_QUEUE"
+# queue = "callbacks-queue"
+
+# [[queues.consumers]]
+# queue = "callbacks-queue"
+# max_batch_size = 50
+
+[durable_objects]
+bindings = [
+  { name = "TaskQueue", class_name = "TaskQueue" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["TaskQueue"]
+
+[observability]
 enabled = true
+head_sampling_rate = 0.01

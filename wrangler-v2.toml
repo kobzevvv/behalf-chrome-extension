@@ -1,0 +1,74 @@
+name = "behalf-task-manager-v2"
+main = "worker/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables
+[vars]
+WEBHOOK_SECRET_KEY = "development-webhook-secret-key-123"
+API_SECRET_KEY = "development-api-secret-key-456"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "behalf"
+database_id = "" # Will be filled by wrangler d1 create
+
+# R2 Bucket binding
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "behalf-ingestion"
+
+# KV Namespace binding (optional)
+[[kv_namespaces]]
+binding = "KV"
+id = "" # Will be filled by wrangler kv:namespace create
+preview_id = "" # Will be filled by wrangler kv:namespace create
+
+# Queue producers
+[[queues.producers]]
+binding = "PARSE_QUEUE"
+queue = "parse-queue"
+
+[[queues.producers]]
+binding = "CALLBACKS_QUEUE" 
+queue = "callbacks-queue"
+
+# Queue consumers
+[[queues.consumers]]
+queue = "callbacks-queue"
+max_batch_size = 10
+max_batch_timeout = 30
+
+# Durable Objects
+[durable_objects]
+bindings = [
+  { name = "TaskQueue", class_name = "TaskQueue" }
+]
+
+# Migration for Durable Objects
+[[migrations]]
+tag = "v1"
+new_classes = ["TaskQueue"]
+
+# Environment-specific configurations
+[env.development]
+name = "behalf-task-manager-development"
+
+[env.development.vars]
+WEBHOOK_SECRET_KEY = "dev-webhook-secret-key-123"
+API_SECRET_KEY = "dev-api-secret-key-456"
+
+[env.production]
+name = "behalf-task-manager-production"
+
+[env.production.vars]
+WEBHOOK_SECRET_KEY = "prod-webhook-secret-key-change-me"
+API_SECRET_KEY = "prod-api-secret-key-change-me"
+
+# Observability
+[observability.logs]
+enabled = true
+
+# Node.js compatibility for crypto and other APIs
+node_compat = true
