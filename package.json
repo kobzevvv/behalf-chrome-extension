@@ -1,6 +1,7 @@
 {
   "name": "behalf-chrome-extension",
   "version": "1.0.0",
+  "type": "module",
   "description": "Chrome extension for managing browser tasks and communication with Cloudflare worker",
   "main": "setup-database.js",
   "scripts": {
@@ -11,7 +12,14 @@
     "test-workflow": "./test-workflow-local.sh",
     "add-test-task": "node add-test-task.js",
     "enqueue-task": "node scripts/enqueue-task.js",
-    "clear-test-data": "node scripts/clear-test-data.js"
+    "clear-test-data": "node scripts/clear-test-data.js",
+    "test": "node test/run-tests.js",
+    "test:webhook": "node test/webhook-service.js",
+    "test:e2e": "node test/run-tests.js",
+    "dev": "wrangler dev --port 8787",
+    "deploy": "wrangler deploy",
+    "build": "tsc",
+    "setup-d1": "wrangler d1 create behalf && wrangler d1 execute behalf --file=worker/d1-schema.sql"
   },
   "keywords": [
     "chrome-extension",
@@ -22,10 +30,19 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
+    "chai": "^4.3.10",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "pg": "^8.11.3",
-    "dotenv": "^16.3.1"
+    "puppeteer": "^21.5.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250913.0",
+    "@types/node": "^20.8.0",
+    "itty-router": "^4.0.23",
+    "typescript": "^5.2.2",
+    "wrangler": "^3.15.0"
+  },
   "engines": {
     "node": ">=14.0.0"
   }
