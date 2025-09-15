@@ -15,21 +15,23 @@ database_id = "your-d1-database-id"
 binding = "R2"
 bucket_name = "behalf-ingestion"
 
-[[kv_namespaces]]
-binding = "KV"
-id = "your-kv-namespace-id"
+# KV namespace (optional for caching)
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "your-kv-namespace-id"
 
-[[queues.producers]]
-binding = "PARSE_QUEUE"
-queue = "parse-queue"
+# Queues configuration (not implemented yet)
+# [[queues.producers]]
+# binding = "PARSE_QUEUE"
+# queue = "parse-queue"
 
-[[queues.producers]]
-binding = "CALLBACKS_QUEUE"
-queue = "callbacks-queue"
+# [[queues.producers]]
+# binding = "CALLBACKS_QUEUE"
+# queue = "callbacks-queue"
 
-[[queues.consumers]]
-queue = "callbacks-queue"
-max_batch_size = 50
+# [[queues.consumers]]
+# queue = "callbacks-queue"
+# max_batch_size = 50
 
 [durable_objects]
 bindings = [
