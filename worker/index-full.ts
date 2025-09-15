@@ -800,3 +800,6 @@ export default {
     }
   }
 };
+
+// Export Durable Object classes
+export { TaskQueue } from './do-task-queue-simple';
