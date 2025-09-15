@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'src/**'
+      - 'worker/**'
       - 'wrangler.toml'
       - 'package.json'
       - '.github/workflows/deploy-and-test.yml'
@@ -35,10 +35,16 @@ jobs:
       with:
         apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         command: deploy --name behalf-task-manager
-        secrets: |
-          DATABASE_URL
       env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        
+    - name: Upload secrets to Cloudflare Worker
+      run: |
+        echo "Uploading DATABASE_URL secret..."
+        echo "${{ secrets.DATABASE_URL }}" | npx wrangler secret put DATABASE_URL --name behalf-task-manager
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         
     - name: Extract Worker URL
       id: worker-url
