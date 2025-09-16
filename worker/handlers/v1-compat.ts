@@ -19,7 +19,7 @@ import { validateBrowserId } from '../utils/validation';
  */
 export async function handleCheckTask(request: Request, env: Env): Promise<Response> {
   try {
-    const body = await request.json();
+    const body = await request.json() as any as any;
     
     if (!body.browserId) {
       return createErrorResponse('browserId is required', 400);
@@ -41,7 +41,7 @@ export async function handleCheckTask(request: Request, env: Env): Promise<Respo
     });
     
     const leaseResponse = await handleLease(leaseRequest, env);
-    const leaseData = await leaseResponse.json();
+    const leaseData = await leaseResponse.json() as any;
     
     if (!leaseResponse.ok) {
       return createErrorResponse('Failed to check for tasks', leaseResponse.status);
@@ -69,7 +69,7 @@ export async function handleCheckTask(request: Request, env: Env): Promise<Respo
     
   } catch (error) {
     console.error('Check task error:', error);
-    return createErrorResponse('Failed to check task', 500, { error: error.message });
+    return createErrorResponse('Failed to check task', 500, { error: (error as Error).message });
   }
 }
 
@@ -79,7 +79,7 @@ export async function handleCheckTask(request: Request, env: Env): Promise<Respo
  */
 export async function handleReportTask(request: Request, env: Env): Promise<Response> {
   try {
-    const body = await request.json();
+    const body = await request.json() as any;
     
     // Validate required v1 fields
     if (!body.taskId || !body.artifactsJson) {
@@ -120,7 +120,7 @@ export async function handleReportTask(request: Request, env: Env): Promise<Resp
     });
     
     const submitResponse = await handleSubmit(submitRequest, env);
-    const submitData = await submitResponse.json();
+    const submitData = await submitResponse.json() as any;
     
     if (!submitResponse.ok) {
       return createErrorResponse('Failed to submit task', submitResponse.status);
@@ -133,13 +133,13 @@ export async function handleReportTask(request: Request, env: Env): Promise<Resp
       tableName: body.tableName || 'default',
       recordCount: 1,
       processingTime: 150, // Fake processing time
-      contentHash: submitData.contentHash,
+      contentHash: (submitData as any).contentHash,
       message: `Content stored in table: ${body.tableName || 'default'}`
     });
     
   } catch (error) {
     console.error('Report task error:', error);
-    return createErrorResponse('Failed to report task', 500, { error: error.message });
+    return createErrorResponse('Failed to report task', 500, { error: (error as Error).message });
   }
 }
 
@@ -172,7 +172,7 @@ export async function handleEnqueueGetPageHtml(request: Request, env: Env): Prom
     });
     
     const createResponse = await handleCreateTask(createTaskRequest, env);
-    const createData = await createResponse.json();
+    const createData = await createResponse.json() as any;
     
     if (!createResponse.ok) {
       return createErrorResponse('Failed to enqueue task', createResponse.status);
@@ -181,7 +181,7 @@ export async function handleEnqueueGetPageHtml(request: Request, env: Env): Prom
     // Convert v2 response to v1 format
     return createSuccessResponse({
       success: true,
-      id: parseInt(createData.jobId.split('_')[1], 36), // Convert to number for v1
+      id: parseInt((createData as any).jobId.split('_')[1], 36), // Convert to number for v1
       browserId,
       url: decodeURIComponent(url),
       tableName: tableName || 'default',
@@ -190,7 +190,7 @@ export async function handleEnqueueGetPageHtml(request: Request, env: Env): Prom
     
   } catch (error) {
     console.error('Enqueue get page HTML error:', error);
-    return createErrorResponse('Failed to enqueue task', 500, { error: error.message });
+    return createErrorResponse('Failed to enqueue task', 500, { error: (error as Error).message });
   }
 }
 
@@ -200,7 +200,7 @@ export async function handleEnqueueGetPageHtml(request: Request, env: Env): Prom
  */
 export async function handleEnqueueTask(request: Request, env: Env): Promise<Response> {
   try {
-    const body = await request.json();
+    const body = await request.json() as any;
     
     // Validate required v1 fields
     if (!body.browserId || !body.urlToExtract) {
@@ -221,7 +221,7 @@ export async function handleEnqueueTask(request: Request, env: Env): Promise<Res
     });
     
     const createResponse = await handleCreateTask(createTaskRequest, env);
-    const createData = await createResponse.json();
+    const createData = await createResponse.json() as any;
     
     if (!createResponse.ok) {
       return createErrorResponse('Failed to enqueue task', createResponse.status);
@@ -230,17 +230,17 @@ export async function handleEnqueueTask(request: Request, env: Env): Promise<Res
     // Convert v2 response to v1 format
     return createSuccessResponse({
       success: true,
-      taskId: parseInt(createData.jobId.split('_')[1], 36), // Convert to number for v1
+      taskId: parseInt((createData as any).jobId.split('_')[1], 36), // Convert to number for v1
       browserId: body.browserId,
       taskName: body.taskName || 'Get Page HTML',
       urlToExtract: body.urlToExtract,
       tableName: body.tableName || 'default',
-      createdDateTime: new Date(createData.createdAt).toISOString(),
+      createdDateTime: new Date((createData as any).createdAt).toISOString(),
       message: `Task queued for extraction to table: page_html_${body.tableName || 'default'}`
     });
     
   } catch (error) {
     console.error('Enqueue task error:', error);
-    return createErrorResponse('Failed to enqueue task', 500, { error: error.message });
+    return createErrorResponse('Failed to enqueue task', 500, { error: (error as Error).message });
   }
 }

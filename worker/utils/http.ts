@@ -111,7 +111,7 @@ export function getBearerToken(request: Request): string | null {
 export async function validateApiToken(token: string): Promise<boolean> {
   // TODO: Implement token validation against D1
   // For now, accept any non-empty token
-  return token && token.length > 0;
+  return Boolean(token && token.length > 0);
 }
 
 /**

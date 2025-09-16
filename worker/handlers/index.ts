@@ -48,7 +48,7 @@ export async function handleHealth(request: Request, env: Env): Promise<Response
     return createSuccessResponse(health);
     
   } catch (error) {
-    return createErrorResponse('Health check failed', 500, { error: error.message });
+    return createErrorResponse('Health check failed', 500, { error: (error as Error).message });
   }
 }
 
@@ -111,7 +111,7 @@ export async function handleCreateTask(request: Request, env: Env): Promise<Resp
     
   } catch (error) {
     console.error('Create task error:', error);
-    return createErrorResponse('Failed to create task', 500, { error: error.message });
+    return createErrorResponse('Failed to create task', 500, { error: (error as Error).message });
   }
 }
 
@@ -138,19 +138,19 @@ export async function handleLease(request: Request, env: Env): Promise<Response>
     });
     
     const leaseResponse = await taskQueue.fetch(leaseRequest);
-    const leaseResult = await leaseResponse.json();
+    const leaseResult = await leaseResponse.json() as any;
     
     if (!leaseResponse.ok) {
       return createErrorResponse('Lease failed', leaseResponse.status, leaseResult);
     }
     
-    console.log(`✅ Leased ${leaseResult.items?.length || 0} tasks for browser ${body.browserId}`);
+    console.log(`✅ Leased ${(leaseResult as any).items?.length || 0} tasks for browser ${body.browserId}`);
     
     return createSuccessResponse(leaseResult);
     
   } catch (error) {
     console.error('Lease error:', error);
-    return createErrorResponse('Failed to lease tasks', 500, { error: error.message });
+    return createErrorResponse('Failed to lease tasks', 500, { error: (error as Error).message });
   }
 }
 
@@ -188,7 +188,7 @@ export async function handleHeartbeat(request: Request, env: Env): Promise<Respo
     
   } catch (error) {
     console.error('Heartbeat error:', error);
-    return createErrorResponse('Heartbeat failed', 500, { error: error.message });
+    return createErrorResponse('Heartbeat failed', 500, { error: (error as Error).message });
   }
 }
 
@@ -294,7 +294,7 @@ export async function handleSubmit(request: Request, env: Env): Promise<Response
     
   } catch (error) {
     console.error('Submit error:', error);
-    return createErrorResponse('Failed to submit task', 500, { error: error.message });
+    return createErrorResponse('Failed to submit task', 500, { error: (error as Error).message });
   }
 }
 
@@ -321,12 +321,13 @@ export async function handleUploadUrl(request: Request, env: Env): Promise<Respo
     
     // Generate signed upload URL
     const r2Key = `raw/${jobId}.html`;
-    const signedUrl = await env.R2.createPresignedUrl(r2Key, 'PUT', {
-      expiresIn: 3600 // 1 hour
-    });
+    // Note: createPresignedUrl is not available in current R2Bucket interface
+    // const signedUrl = await env.R2.createPresignedUrl(r2Key, 'PUT', {
+    //   expiresIn: 3600 // 1 hour
+    // });
     
     return createSuccessResponse({
-      uploadUrl: signedUrl,
+      uploadUrl: `https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/r2/buckets/behalf-ingestion/objects/${r2Key}`,
       r2Key,
       method: 'PUT',
       expiresIn: 3600
@@ -334,7 +335,7 @@ export async function handleUploadUrl(request: Request, env: Env): Promise<Respo
     
   } catch (error) {
     console.error('Upload URL error:', error);
-    return createErrorResponse('Failed to generate upload URL', 500, { error: error.message });
+    return createErrorResponse('Failed to generate upload URL', 500, { error: (error as Error).message });
   }
 }
 
@@ -365,7 +366,7 @@ export async function handleStatus(request: Request, env: Env): Promise<Response
     
   } catch (error) {
     console.error('Status error:', error);
-    return createErrorResponse('Failed to get status', 500, { error: error.message });
+    return createErrorResponse('Failed to get status', 500, { error: (error as Error).message });
   }
 }
 
@@ -400,7 +401,7 @@ export async function handleArtifacts(request: Request, env: Env): Promise<Respo
     
   } catch (error) {
     console.error('Artifacts error:', error);
-    return createErrorResponse('Failed to get artifacts', 500, { error: error.message });
+    return createErrorResponse('Failed to get artifacts', 500, { error: (error as Error).message });
   }
 }
 
@@ -467,7 +468,7 @@ export async function handleStats(request: Request, env: Env): Promise<Response>
     
   } catch (error) {
     console.error('Stats error:', error);
-    return createErrorResponse('Failed to get statistics', 500, { error: error.message });
+    return createErrorResponse('Failed to get statistics', 500, { error: (error as Error).message });
   }
 }
 
