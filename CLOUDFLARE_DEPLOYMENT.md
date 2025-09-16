@@ -1,12 +1,14 @@
 # Cloudflare Worker Deployment Guide
 
-This guide will walk you through deploying the Cloudflare Worker for the Behalf Chrome Extension.
+> **📋 Note**: For the most up-to-date deployment instructions, see the **[README.md](./readme.md#2-cloudflare-worker-deployment)** file.
+
+This document provides additional deployment methods and troubleshooting information.
 
 ## Prerequisites
 
-- Cloudflare account
-- Neon database already set up (from previous steps)
-- Chrome extension files ready
+- Cloudflare account (free tier works)
+- Wrangler CLI installed globally: `npm install -g wrangler`
+- Authenticated with Cloudflare: `wrangler login`
 
 ## Method 1: Cloudflare Dashboard (Recommended)
 

@@ -42,26 +42,91 @@ A modern Chrome extension that manages browser tasks using a **Cloudflare-native
    - Set your Cloudflare Worker URL
    - Configure Browser ID (unique identifier)
 
-### **2. Cloudflare Worker Setup**
+### **2. Cloudflare Worker Deployment**
 
-1. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
+#### **Prerequisites**
+- Cloudflare account (free tier works)
+- Wrangler CLI installed globally: `npm install -g wrangler`
+- Authenticated with Cloudflare: `wrangler login`
 
-2. **Deploy Worker**:
-   ```bash
-   # Development
-   npm run dev
-   
-   # Production
-   npm run deploy
-   ```
+#### **Quick Deployment (Recommended)**
+```bash
+# 1. Install dependencies
+npm install
 
-3. **Setup D1 Database**:
-   ```bash
-   npm run setup-d1
-   ```
+# 2. Build TypeScript
+npm run build
+
+# 3. Deploy to Cloudflare
+npm run deploy
+
+# 4. (Optional) Setup D1 database for persistence
+npm run setup-d1
+```
+
+#### **Alternative Deployment Methods**
+
+**Method 1: Using deployment scripts**
+```bash
+# Simple deployment
+./deploy-worker-simple.sh
+
+# Development deployment with environment variables
+./deploy-dev.sh
+
+# Full production deployment
+./deploy-worker.sh
+```
+
+**Method 2: Manual Wrangler commands**
+```bash
+# Build first
+npm run build
+
+# Deploy with specific configuration
+wrangler deploy --config wrangler.toml --name behalf-task-manager
+
+# Or deploy with different configs
+wrangler deploy --config wrangler-simple.toml  # Simpler version
+wrangler deploy --config wrangler-full.toml    # Full features
+```
+
+#### **Local Development**
+```bash
+# Start local development server
+npm run dev          # Full version (port 8788)
+npm run dev:simple   # Simple version (port 8787)
+
+# Run tests
+npm test             # All tests
+npm run test:e2e     # End-to-end tests
+```
+
+#### **After Deployment**
+1. **Get your Worker URL** from the deployment output
+2. **Update Chrome extension** with the Worker URL in the popup
+3. **Test the connection** using the extension
+
+#### **Environment Configuration**
+- Copy `env.example` to `.env` for local development
+- Set `DATABASE_URL` for database persistence (optional)
+- Configure secrets via: `wrangler secret put DATABASE_URL`
+
+#### **Troubleshooting**
+- **Authentication errors**: Run `wrangler login` to authenticate
+- **Build errors**: Ensure TypeScript compiles with `npm run build`
+- **Deployment fails**: Check your Cloudflare account limits and permissions
+- **Durable Objects error**: For first deployment with Durable Objects, use `wrangler deploy` (not `wrangler versions upload`)
+- **Worker not responding**: Verify the URL in the extension popup matches your deployed worker
+- **Need help?**: Check existing deployment scripts (`deploy-dev.sh`, `deploy-worker-simple.sh`) for examples
+
+---
+
+### **🎯 TL;DR - Deploy in 30 seconds**
+```bash
+npm install && npm run build && npm run deploy
+```
+Then update your Chrome extension with the deployed Worker URL. Done! 🚀
 
 ## 📋 **API Reference - v2**
 
