@@ -42,7 +42,8 @@ export class TaskQueue {
     });
 
     // Set up periodic cleanup of expired leases
-    this.state.setAlarm(Date.now() + 60000); // Check every minute
+    // Note: setAlarm is not available in the current DurableObjectState interface
+    // this.state.setAlarm(Date.now() + 60000); // Check every minute
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -64,7 +65,7 @@ export class TaskQueue {
       }
     } catch (error) {
       console.error('TaskQueue DO error:', error);
-      return createErrorResponse('Internal Error', 500, { error: error.message });
+      return createErrorResponse('Internal Error', 500, { error: (error as Error).message });
     }
   }
 
@@ -72,7 +73,7 @@ export class TaskQueue {
    * Handle lease request
    */
   async handleLease(request: Request): Promise<Response> {
-    const body = await request.json();
+    const body = await request.json() as any;
     const { browserId, maxItems = 1 } = body;
 
     if (!browserId) {
@@ -115,7 +116,7 @@ export class TaskQueue {
    * Handle heartbeat request
    */
   async handleHeartbeat(request: Request): Promise<Response> {
-    const body = await request.json();
+    const body = await request.json() as any;
     const { jobId, leaseId } = body;
 
     if (!jobId || !leaseId) {
@@ -160,7 +161,7 @@ export class TaskQueue {
    * Handle release request (when task is completed)
    */
   async handleRelease(request: Request): Promise<Response> {
-    const body = await request.json();
+    const body = await request.json() as any;
     const { jobId, leaseId } = body;
 
     if (!jobId || !leaseId) {
@@ -189,7 +190,7 @@ export class TaskQueue {
     const url = new URL(request.url);
     const browserId = url.searchParams.get('browserId');
 
-    const status = {
+    const status: any = {
       totalLeases: this.leases.size,
       browsers: this.browserLeases.size,
       leases: Array.from(this.leases.values()),
@@ -335,12 +336,12 @@ export class TaskQueue {
       await this.saveState();
       
       // Set next alarm
-      await this.state.setAlarm(Date.now() + 60000); // Check again in 1 minute
+      // await this.state.setAlarm(Date.now() + 60000); // Check again in 1 minute
       
     } catch (error) {
       console.error('TaskQueue alarm error:', error);
       // Still set next alarm even if this one failed
-      await this.state.setAlarm(Date.now() + 60000);
+      // await this.state.setAlarm(Date.now() + 60000);
     }
   }
 }

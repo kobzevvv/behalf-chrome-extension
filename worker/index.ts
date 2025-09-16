@@ -95,7 +95,7 @@ export default {
       return createErrorResponse(
         'Internal Server Error',
         500,
-        { error: error.message }
+        { error: (error as Error).message }
       );
     }
   },

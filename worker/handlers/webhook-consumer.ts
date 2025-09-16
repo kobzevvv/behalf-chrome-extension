@@ -161,7 +161,7 @@ async function processWebhookMessage(
 
     // Update delivery record with error
     await updateDeliveryRecord(env, deliveryId, {
-      lastError: error.message,
+      lastError: (error as Error).message,
       attempts: await incrementDeliveryAttempts(env, deliveryId)
     });
 
@@ -184,7 +184,7 @@ async function processWebhookMessage(
       // Mark job as failed
       await env.DB.prepare(`
         UPDATE jobs SET state = 'failed', error_message = ?, updated_at = ? WHERE job_id = ?
-      `).bind(`Webhook delivery failed: ${error.message}`, getCurrentTimestamp(), job_id).run();
+      `).bind(`Webhook delivery failed: ${(error as Error).message}`, getCurrentTimestamp(), job_id).run();
     }
 
     throw error; // Re-throw to mark message as failed
