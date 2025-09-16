@@ -6,6 +6,11 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 NODE_ENV = "production"
 
+# Development environment
+[env.development]
+name = "behalf-task-manager-dev"
+vars = { NODE_ENV = "development" }
+
 # D1 database for job metadata (create this database in Cloudflare dashboard first)
 # [[d1_databases]]
 # binding = "DB"

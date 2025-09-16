@@ -11,7 +11,8 @@
     "dev": "wrangler dev --config wrangler-full.toml --port 8788",
     "dev:simple": "wrangler dev --config wrangler-simple.toml --port 8787",
     "deploy": "wrangler deploy",
-    "deploy:direct": "wrangler deploy",
+    "deploy:dev": "wrangler deploy --env development",
+    "deploy:prod": "wrangler deploy",
     "deploy:versions": "wrangler versions upload",
     "build": "tsc",
     "setup-d1": "wrangler d1 create behalf && wrangler d1 execute behalf --file=worker/d1-schema.sql"
