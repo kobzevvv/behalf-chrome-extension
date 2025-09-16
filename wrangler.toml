@@ -1,4 +1,4 @@
-name = "behalf-task-manager-dev"
+name = "behalf-task-manager"
 main = "worker/index-full.ts"
 compatibility_date = "2024-09-15"
 compatibility_flags = ["nodejs_compat"]
