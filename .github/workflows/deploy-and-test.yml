@@ -29,15 +29,32 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
+    - name: Verify wrangler configuration
+      run: |
+        echo "Checking wrangler.toml configuration..."
+        cat wrangler.toml
+        echo ""
+        echo "Checking main entry file exists..."
+        ls -la worker/index-full.ts
+        
+    - name: Build TypeScript files
+      run: |
+        echo "Building TypeScript files..."
+        npm run build
+        echo "TypeScript build completed successfully!"
+        
     - name: Deploy to Cloudflare Workers
       id: deploy
-      uses: cloudflare/wrangler-action@v3
-      with:
-        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        command: deploy --name behalf-task-manager
+      run: |
+        echo "Deploying worker with wrangler CLI directly..."
+        echo "Wrangler version:"
+        npx wrangler --version
+        echo ""
+        echo "Starting deployment..."
+        npx wrangler deploy --name behalf-task-manager --compatibility-date 2024-09-15 --verbose 2>&1 | tee deploy-output.log
+        echo "Deployment completed!"
       env:
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
         
     - name: Upload secrets to Cloudflare Worker
       run: |
@@ -200,4 +217,5 @@ jobs:
           test-report-payload.json
           health-response.json
           report-response.json
+          deploy-output.log
         retention-days: 7
