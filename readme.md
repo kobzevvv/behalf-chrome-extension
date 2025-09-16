@@ -49,7 +49,14 @@ A modern Chrome extension that manages browser tasks using a **Cloudflare-native
 - Wrangler CLI installed globally: `npm install -g wrangler`
 - Authenticated with Cloudflare: `wrangler login`
 
-#### **Quick Deployment (Recommended)**
+#### **🔄 Automatic Development Deployment (Cloudflare)**
+**Cloudflare Workers automatically builds and deploys to development:**
+- ✅ **Push to any branch** → Cloudflare builds and deploys to `behalf-task-manager-dev`
+- ✅ **Stable and reliable** → Native Cloudflare integration
+- ✅ **No GitHub Actions complexity** → Simple and fast
+- ✅ **No production impact** → Safe to experiment
+
+#### **📦 Manual Production Deployment**
 ```bash
 # 1. Install dependencies
 npm install
@@ -57,11 +64,23 @@ npm install
 # 2. Build TypeScript
 npm run build
 
-# 3. Deploy to Cloudflare
-npm run deploy
+# 3. Deploy to PRODUCTION (manual only)
+npm run deploy:prod
 
 # 4. (Optional) Setup D1 database for persistence
 npm run setup-d1
+```
+
+#### **🧪 Development Commands**
+```bash
+# Deploy to development manually (same as Cloudflare auto-deploy)
+npm run deploy:dev
+
+# Local development server
+npm run dev
+
+# Test the deployment
+npm test
 ```
 
 #### **Alternative Deployment Methods**
